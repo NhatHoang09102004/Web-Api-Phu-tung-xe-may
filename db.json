@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "id": "p1",
+      "name": "Nhông sên dĩa DID 428",
+      "price": 250000
+    },
+    {
+      "id": "p2",
+      "name": "Lốp IRC 70/90-17",
+      "price": 400000
+    }
+  ]
+}
