@@ -12,7 +12,7 @@ import {
 const router = express.Router();
 
 /**
- * @openapi
+ * @swagger
  * /api/products:
  *   get:
  *     summary: Lấy danh sách tất cả sản phẩm
@@ -24,7 +24,7 @@ const router = express.Router();
 router.get("/", getAllProducts);
 
 /**
- * @openapi
+ * @swagger
  * /api/products/{id}:
  *   get:
  *     summary: Lấy thông tin chi tiết một sản phẩm theo ID
@@ -45,7 +45,7 @@ router.get("/", getAllProducts);
 router.get("/:id", getProductById);
 
 /**
- * @openapi
+ * @swagger
  * /api/products:
  *   post:
  *     summary: Thêm mới một sản phẩm
@@ -56,11 +56,16 @@ router.get("/:id", getProductById);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - price
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Lọc dầu xe máy"
  *               price:
  *                 type: number
+ *                 example: 120000
  *               categoryId:
  *                 type: string
  *               modelId:
@@ -74,7 +79,7 @@ router.get("/:id", getProductById);
 router.post("/", createProduct);
 
 /**
- * @openapi
+ * @swagger
  * /api/products/{id}:
  *   put:
  *     summary: Cập nhật thông tin sản phẩm theo ID
@@ -110,7 +115,7 @@ router.post("/", createProduct);
 router.put("/:id", updateProduct);
 
 /**
- * @openapi
+ * @swagger
  * /api/products/{id}:
  *   delete:
  *     summary: Xóa sản phẩm theo ID
@@ -131,7 +136,7 @@ router.put("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
 
 /**
- * @openapi
+ * @swagger
  * /api/products/bulk-insert:
  *   post:
  *     summary: Thêm nhiều sản phẩm cùng lúc
@@ -156,7 +161,7 @@ router.delete("/:id", deleteProduct);
 router.post("/bulk-insert", addMultipleProducts);
 
 /**
- * @openapi
+ * @swagger
  * /api/products/delete-multiple:
  *   post:
  *     summary: Xóa nhiều sản phẩm cùng lúc
