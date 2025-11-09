@@ -28,6 +28,7 @@ app.use(express.json());
 const ALLOW_HOSTS = new Set([
   "nhathoang09102004.github.io", // GitHub Pages của bạn (origin: https://nhathoang09102004.github.io)
   "localhost",
+  "motorparts-api.onrender.com",
   "127.0.0.1",
 
   // ⬇️ TODO: Sau khi deploy, thêm host Render thật vào đây, ví dụ:
