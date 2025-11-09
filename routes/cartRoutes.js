@@ -10,7 +10,6 @@ import {
 const router = express.Router();
 
 /**
- * @openapi
  * @swagger
  * /api/cart:
  *   get:
@@ -23,7 +22,6 @@ const router = express.Router();
 router.get("/", getCart);
 
 /**
- *   @openapi
  * @swagger
  * /api/cart/add:
  *   post:
@@ -51,7 +49,6 @@ router.get("/", getCart);
 router.post("/add", addToCart);
 
 /**
- *  @openapi
  * @swagger
  * /api/cart/update:
  *   put:
@@ -86,7 +83,6 @@ router.post("/add", addToCart);
 router.put("/update", updateCartItem);
 
 /**
- *  @openapi
  * @swagger
  * /api/cart/remove:
  *   delete:
@@ -116,7 +112,6 @@ router.put("/update", updateCartItem);
 router.delete("/remove", removeFromCart);
 
 /**
- *  @openapi
  * @swagger
  * /api/cart/checkout:
  *   post:

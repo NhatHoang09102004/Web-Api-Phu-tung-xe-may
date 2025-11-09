@@ -86,20 +86,20 @@ const swaggerSpec = swaggerJsdoc({
     ],
   },
   apis: [
-    "./app.js",
     "./routes/*.js",
     "./routes/**/*.js",
-    // dự phòng tuyệt đối (khi cwd lệch):
     `${__dirname.replace(/\\/g, "/")}/routes/*.js`,
     `${__dirname.replace(/\\/g, "/")}/routes/**/*.js`,
   ],
 });
+console.log("✅ Swagger loaded paths:", swaggerSpec.paths);
+
 // Trang Swagger UI & JSON
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
 
 /**
- * @openapi
+ *  @swagger
  * /api/ping:
  *   get:
  *     summary: Health check
