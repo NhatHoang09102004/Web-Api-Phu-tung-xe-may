@@ -82,17 +82,14 @@ const swaggerSpec = swaggerJsdoc({
     info: { title: "Nhật Hoàng API", version: "1.0.0" },
     servers: [
       { url: `http://localhost:${PORT}` },
-      { url: "https://motorparts-api.onrender.com" }, // ✅ thêm server Render thật
+      { url: "https://motorparts-api.onrender.com" },
     ],
   },
-  // ✅ sửa đường dẫn này: app.js là file khởi động chính, không phải server.js
-  apis: [
-    path.join(__dirname, "app.js"),
-    path.join(__dirname, "routes", "*.js"),
-    // nếu có subfolder: path.join(__dirname, "routes", "**", "*.js"),
-  ],
+  // ❗ Dùng glob chuỗi, forward slash. Không truyền path của thư mục trần!
+  apis: ["./app.js", "./routes/**/*.js"],
+  // Tùy chọn: ném lỗi nếu JSDoc sai cú pháp
+  // failOnErrors: true,
 });
-
 // Trang Swagger UI & JSON
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
