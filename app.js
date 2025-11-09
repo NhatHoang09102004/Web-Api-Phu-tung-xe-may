@@ -3,6 +3,11 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
 
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // bảo mật
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -81,7 +86,11 @@ const swaggerSpec = swaggerJsdoc({
     ],
   },
   // ✅ sửa đường dẫn này: app.js là file khởi động chính, không phải server.js
-  apis: ["./app.js", "./routes/*.js"],
+  apis: [
+    path.join(__dirname, "app.js"),
+    path.join(__dirname, "routes", "*.js"),
+    // nếu có subfolder: path.join(__dirname, "routes", "**", "*.js"),
+  ],
 });
 
 // Trang Swagger UI & JSON
