@@ -3,10 +3,15 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
 
-// [ADD] Swagger
+//baomat
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
+// Swagger
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 
+// Routes
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -15,18 +20,23 @@ import cartRoutes from "./routes/cartRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 
-// ===== CORS (gọn, chỉ 1 lần) =====
+// ===== CORS (gọn, chuẩn production) =====
 const ALLOW_HOSTS = new Set([
-  "nhathoang09102004.github.io", // GitHub Pages
+  "nhathoang09102004.github.io", // GitHub Pages của bạn (origin: https://nhathoang09102004.github.io)
   "localhost",
   "127.0.0.1",
-  // [ADD] sau khi deploy, thêm host deploy vào đây, ví dụ:
+
+  // ⬇️ TODO: Sau khi deploy, thêm host Render thật vào đây, ví dụ:
   // "your-service.onrender.com",
+
+  // ⬇️ (tuỳ chọn) domain riêng nếu có:
   // "api.yourdomain.com",
 ]);
+
 app.use(
   cors({
     origin(origin, cb) {
@@ -55,29 +65,36 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/models", modelRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/stats", statsRoutes);
+//baomat
+app.use(helmet());
+app.use(rateLimit({ windowMs: 60 * 1000, max: 120 })); // 120 req/phút/IP
 
-// [ADD] Ping
-app.get("/api/ping", (req, res) => res.json({ message: "pong" }));
+// Healthcheck (2 đường dẫn cho tiện)
+app.get("/api/ping", (_req, res) => res.json({ ok: true, message: "pong" }));
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// [ADD] Swagger options
+// ===== Swagger =====
+const PORT = process.env.PORT || 3000;
+
+// Lưu ý: thêm cả server Render/Domain khi có
 const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: "3.0.0",
     info: { title: "Nhật Hoàng API", version: "1.0.0" },
     servers: [
-      { url: "http://localhost:3000" },
-      // Sau khi deploy Render, thêm:
+      { url: `http://localhost:${PORT}` },
+      // ⬇️ TODO: Sau khi deploy, thêm vào (đúng URL của bạn):
       // { url: "https://your-service.onrender.com" },
-      // hoặc domain của bạn: { url: "https://api.yourdomain.com" },
+      // hoặc: { url: "https://api.yourdomain.com" },
     ],
   },
-  // có thể thêm "./routes/*.js" nếu bạn dùng JSDoc trong file route
-  apis: ["./server.js"],
+  // Nếu bạn có JSDoc trong các file route, bật dòng sau:
+  apis: ["./server.js", "./routes/*.js"],
 });
 
-// [ADD] Trang Swagger UI & file JSON
+// Trang Swagger UI & JSON
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.get("/openapi.json", (req, res) => res.json(swaggerSpec));
+app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
 
 /**
  * @openapi
@@ -89,5 +106,6 @@ app.get("/openapi.json", (req, res) => res.json(swaggerSpec));
  *         description: OK
  */
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 API đang chạy cổng ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 API đang chạy cổng ${PORT}`);
+});

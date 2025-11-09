@@ -1,15 +1,13 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      dbName: process.env.DB_NAME,
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      dbName: "motorparts", // hoặc tên DB bạn đang dùng trong Atlas
     });
-    console.log("✅ Kết nối MongoDB thành công");
+    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error("❌ Lỗi kết nối MongoDB:", error.message);
+    console.error("❌ MongoDB connection error:", error.message);
     process.exit(1);
   }
 };
