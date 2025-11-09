@@ -85,10 +85,14 @@ const swaggerSpec = swaggerJsdoc({
       { url: "https://motorparts-api.onrender.com" },
     ],
   },
-  // ❗ Dùng glob chuỗi, forward slash. Không truyền path của thư mục trần!
-  apis: ["./app.js", "./routes/**/*.js"],
-  // Tùy chọn: ném lỗi nếu JSDoc sai cú pháp
-  // failOnErrors: true,
+  apis: [
+    "./app.js",
+    "./routes/*.js",
+    "./routes/**/*.js",
+    // dự phòng tuyệt đối (khi cwd lệch):
+    `${__dirname.replace(/\\/g, "/")}/routes/*.js`,
+    `${__dirname.replace(/\\/g, "/")}/routes/**/*.js`,
+  ],
 });
 // Trang Swagger UI & JSON
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
