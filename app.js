@@ -27,6 +27,14 @@ import statsRoutes from "./routes/statsRoutes.js";
 dotenv.config();
 
 const app = express();
+
+// ===== Proxy (Render/Nginx/CF) =====
+// Bắt buộc trước rateLimit để ERL đọc đúng X-Forwarded-For
+const isProd = process.env.NODE_ENV === "production";
+const isRender = process.env.RENDER === "true";
+app.set("trust proxy", isRender || isProd ? 1 : false);
+
+// ===== Parsers =====
 app.use(express.json());
 
 // ===== CORS =====
@@ -39,7 +47,7 @@ const ALLOW_HOSTS = new Set([
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin) return cb(null, true); // cho Postman
+      if (!origin) return cb(null, true); // cho Postman/curl
       try {
         const host = new URL(origin).hostname;
         const ok = ALLOW_HOSTS.has(host);
@@ -54,12 +62,23 @@ app.use(
   })
 );
 
-// ===== DB =====
-connectDB();
-
 // ===== Bảo mật =====
 app.use(helmet());
-app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
+
+// v7: dùng limit (max vẫn alias), thêm header chuẩn
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    limit: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Optional: đảm bảo theo IP sau proxy
+    keyGenerator: (req) => req.ip,
+  })
+);
+
+// ===== DB =====
+connectDB();
 
 // ===== Routes =====
 app.use("/api/vehicles", vehicleRoutes);
@@ -79,7 +98,11 @@ const PORT = process.env.PORT || 3000;
 const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: "3.0.0",
-    info: { title: "Nhật Hoàng API", version: "1.0.0" },
+    info: {
+      title: "Nhật Hoàng API",
+      version: "1.0.0",
+      description: "Tài liệu OpenAPI cho MotorParts",
+    },
     servers: [
       { url: `http://localhost:${PORT}` },
       { url: "https://motorparts-api.onrender.com" },
@@ -92,13 +115,17 @@ const swaggerSpec = swaggerJsdoc({
     `${__dirname.replace(/\\/g, "/")}/routes/**/*.js`,
   ],
 });
-// s
+
 // Trang Swagger UI & JSON
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, { explorer: true })
+);
 app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
 
 /**
- *  @swagger
+ * @openapi
  * /api/ping:
  *   get:
  *     summary: Health check
