@@ -10,7 +10,8 @@ const __dirname = path.dirname(__filename);
 
 // bảo mật
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+// sử dụng helper ipKeyGenerator từ express-rate-limit
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 // Swagger
 import swaggerUi from "swagger-ui-express";
@@ -39,15 +40,15 @@ app.use(express.json());
 
 // ===== CORS =====
 const ALLOW_HOSTS = new Set([
-  "nhathoang09102004.github.io", // GitHub Pages
+  "nhathoang09102004.github.io",
   "localhost",
   "127.0.0.1",
-  "motorparts-api.onrender.com", // Render host của bạn
+  "motorparts-api.onrender.com",
 ]);
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin) return cb(null, true); // cho Postman/curl
+      if (!origin) return cb(null, true);
       try {
         const host = new URL(origin).hostname;
         const ok = ALLOW_HOSTS.has(host);
@@ -65,15 +66,14 @@ app.use(
 // ===== Bảo mật =====
 app.use(helmet());
 
-// v7: dùng limit (max vẫn alias), thêm header chuẩn
+// v7: dùng limit, thêm header chuẩn, dùng ipKeyGenerator để an toàn với IPv6
 app.use(
   rateLimit({
     windowMs: 60 * 1000,
     limit: 120,
     standardHeaders: true,
     legacyHeaders: false,
-    // Optional: đảm bảo theo IP sau proxy
-    keyGenerator: (req) => req.ip,
+    keyGenerator: ipKeyGenerator, // <-- dùng helper chính thức (IPv4 + IPv6 an toàn)
   })
 );
 
