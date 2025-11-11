@@ -92,8 +92,7 @@ const swaggerSpec = swaggerJsdoc({
     `${__dirname.replace(/\\/g, "/")}/routes/**/*.js`,
   ],
 });
-console.log("✅ Swagger loaded paths:", swaggerSpec.paths);
-
+// s
 // Trang Swagger UI & JSON
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
