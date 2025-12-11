@@ -3,8 +3,15 @@ import Product from "../models/Product.js";
 import mongoose from "mongoose";
 
 /**
+ * Escape keyword để tránh lỗi regex match lung tung
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * GET /api/products
- * phân trang + tìm kiếm + lọc + sắp xếp
+ * Phân trang + tìm kiếm + lọc + sắp xếp
  */
 export const getAllProducts = async (req, res) => {
   try {
@@ -26,19 +33,24 @@ export const getAllProducts = async (req, res) => {
     const pageNum = Math.max(1, Number(page));
     const lim = Math.min(100, Math.max(1, Number(limit)));
 
-    // build filter
+    // ==========================
+    // BUILD FILTER
+    // ==========================
     const filters = {};
+
     if (vehicle) filters.vehicle = vehicle;
     if (category) filters.category = category;
     if (model) filters.model = model;
     if (status) filters.status = status;
     if (year) filters.year = year;
-    if (q) {
-      // dùng text nếu có, fallback regex
-      // assumes text index exists
-      const safeKeyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // ===== FIX TÌM KIẾM KHÔNG PHÂN BIỆT HOA/THƯỜNG + KHÔNG MATCH SAI =====
+    if (q && q.trim()) {
+      const safeKeyword = escapeRegex(q.trim());
       filters.name = { $regex: safeKeyword, $options: "i" };
     }
+
+    // Giá
     if (price_min || price_max) {
       filters.price = {};
       if (price_min) filters.price.$gte = Number(price_min);
@@ -47,10 +59,10 @@ export const getAllProducts = async (req, res) => {
 
     const sortObj = { [sort]: order === "asc" ? 1 : -1 };
 
-    // total count (chi phí 1 query)
+    // Đếm tổng
     const totalItems = await Product.countDocuments(filters);
 
-    // projection: trả những trường UI cần (giảm payload)
+    // Chọn trường trả về
     const projection =
       "name price vehicle model category quantity image status createdAt";
 
@@ -61,7 +73,7 @@ export const getAllProducts = async (req, res) => {
       .limit(lim)
       .lean();
 
-    // sửa status theo quantity
+    // Sửa status theo quantity
     const data = products.map((p) =>
       typeof p.quantity === "number" && p.quantity <= 0
         ? { ...p, status: "Hết hàng" }
@@ -108,9 +120,11 @@ export const getProductById = async (req, res) => {
     const product = await Product.findById(id).lean();
     if (!product)
       return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+
     if (typeof product.quantity === "number" && product.quantity <= 0) {
       product.status = "Hết hàng";
     }
+
     return res.status(200).json(product);
   } catch (error) {
     console.error("getProductById:", error);
@@ -126,18 +140,19 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   try {
     const { name, vehicle, model, category, price } = req.body;
+
     if (!name || !vehicle || !model || !category || price == null) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
     }
 
     const product = new Product(req.body);
     await product.save();
+
     return res
       .status(201)
       .json({ message: "Thêm sản phẩm thành công", data: product });
   } catch (error) {
     console.error("createProduct:", error);
-    // duplicate key? (nếu bật unique index)
     return res
       .status(500)
       .json({ error: "Lỗi khi thêm sản phẩm", details: error.message });
@@ -150,6 +165,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ error: "ID không hợp lệ" });
 
@@ -157,10 +173,12 @@ export const updateProduct = async (req, res) => {
       new: true,
       runValidators: true,
     }).lean();
+
     if (!product)
       return res
         .status(404)
         .json({ error: "Không tìm thấy sản phẩm để cập nhật" });
+
     return res
       .status(200)
       .json({ message: "Cập nhật sản phẩm thành công", data: product });
@@ -178,12 +196,15 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ error: "ID không hợp lệ" });
 
     const product = await Product.findByIdAndDelete(id).lean();
+
     if (!product)
       return res.status(404).json({ error: "Không tìm thấy sản phẩm để xóa" });
+
     return res.status(200).json({ message: "Đã xóa sản phẩm thành công" });
   } catch (error) {
     console.error("deleteProduct:", error);
@@ -195,29 +216,26 @@ export const deleteProduct = async (req, res) => {
 
 /**
  * POST /api/products/bulk-insert
- * Thêm nhiều sản phẩm cùng lúc.
- * Giải pháp: dùng bulkWrite + upsert:$setOnInsert để bỏ qua duplicates (không cập nhật).
  */
 export const addMultipleProducts = async (req, res) => {
   try {
     const products = req.body;
-    if (!Array.isArray(products) || products.length === 0) {
+
+    if (!Array.isArray(products) || products.length === 0)
       return res
         .status(400)
         .json({ error: "Dữ liệu phải là mảng các sản phẩm" });
-    }
 
     const invalid = products.filter(
       (p) => !p.name || !p.vehicle || !p.model || !p.category || p.price == null
     );
-    if (invalid.length) {
+
+    if (invalid.length)
       return res.status(400).json({
         error: "Một số sản phẩm thiếu thông tin bắt buộc",
         details: invalid,
       });
-    }
 
-    // prepare bulk ops: dùng compound key (name, vehicle, model, category)
     const ops = products.map((p) => {
       const filter = {
         name: p.name,
@@ -235,20 +253,14 @@ export const addMultipleProducts = async (req, res) => {
     });
 
     const result = await Product.bulkWrite(ops, { ordered: false });
-    // result.upsertedCount là số bản ghi thêm mới
     const upserted = result.upsertedCount || 0;
-
-    // compute skipped = input - upserted (approx)
     const skipped = products.length - upserted;
 
-    // Fetch the newly added documents for response preview (optional, limited)
-    // Note: bulkWrite doesn't return docs, so we can query by recently added createdAt range if needed.
     return res.status(201).json({
       message: "Thêm nhiều sản phẩm hoàn tất",
       requested: products.length,
       addedCount: upserted,
       skippedCount: skipped,
-      resultSummary: result,
     });
   } catch (error) {
     console.error("addMultipleProducts:", error);
@@ -264,18 +276,21 @@ export const addMultipleProducts = async (req, res) => {
 export const deleteMultipleProducts = async (req, res) => {
   try {
     const { ids } = req.body;
+
     if (!Array.isArray(ids) || ids.length === 0)
       return res.status(400).json({ error: "Cần cung cấp mảng ID để xóa" });
 
     const result = await Product.deleteMany({ _id: { $in: ids } });
+
     return res.status(200).json({
       message: "Đã xóa nhiều sản phẩm thành công",
       deletedCount: result.deletedCount,
     });
   } catch (error) {
     console.error("deleteMultipleProducts:", error);
-    return res
-      .status(500)
-      .json({ error: "Lỗi khi xóa nhiều sản phẩm", details: error.message });
+    return res.status(500).json({
+      error: "Lỗi khi xóa nhiều sản phẩm",
+      details: error.message,
+    });
   }
 };
