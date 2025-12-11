@@ -12,6 +12,6 @@ const categorySchema = new mongoose.Schema(
 
 // Compound index: name + vehicle unique
 categorySchema.index({ name: 1, vehicle: 1 }, { unique: true });
-
+  
 const Category = mongoose.model("Category", categorySchema);
 export default Category;
