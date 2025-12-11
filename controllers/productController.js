@@ -36,7 +36,8 @@ export const getAllProducts = async (req, res) => {
     if (q) {
       // dùng text nếu có, fallback regex
       // assumes text index exists
-      filters.$text = { $search: q };
+      const safeKeyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filters.name = { $regex: safeKeyword, $options: "i" };
     }
     if (price_min || price_max) {
       filters.price = {};
@@ -210,12 +211,10 @@ export const addMultipleProducts = async (req, res) => {
       (p) => !p.name || !p.vehicle || !p.model || !p.category || p.price == null
     );
     if (invalid.length) {
-      return res
-        .status(400)
-        .json({
-          error: "Một số sản phẩm thiếu thông tin bắt buộc",
-          details: invalid,
-        });
+      return res.status(400).json({
+        error: "Một số sản phẩm thiếu thông tin bắt buộc",
+        details: invalid,
+      });
     }
 
     // prepare bulk ops: dùng compound key (name, vehicle, model, category)
@@ -269,12 +268,10 @@ export const deleteMultipleProducts = async (req, res) => {
       return res.status(400).json({ error: "Cần cung cấp mảng ID để xóa" });
 
     const result = await Product.deleteMany({ _id: { $in: ids } });
-    return res
-      .status(200)
-      .json({
-        message: "Đã xóa nhiều sản phẩm thành công",
-        deletedCount: result.deletedCount,
-      });
+    return res.status(200).json({
+      message: "Đã xóa nhiều sản phẩm thành công",
+      deletedCount: result.deletedCount,
+    });
   } catch (error) {
     console.error("deleteMultipleProducts:", error);
     return res
