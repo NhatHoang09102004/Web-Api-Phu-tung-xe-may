@@ -17,7 +17,6 @@ import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import modelRoutes from "./routes/modelRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
-// import statsRoutes from "./routes/dashboardStatsRoutes.js";
 import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
 
 dotenv.config();
@@ -87,7 +86,6 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/models", modelRoutes);
 app.use("/api/cart", cartRoutes);
-app.use("/api/stats", statsRoutes);
 app.use("/api/stats", dashboardStatsRoutes);
 
 // Healthchecks
