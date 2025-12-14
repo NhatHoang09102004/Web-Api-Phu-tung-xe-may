@@ -1,18 +1,22 @@
 // controllers/productController.js
 import Product from "../models/Product.js";
 import mongoose from "mongoose";
+import { removeVietnameseTone } from "../utils/stringUtils.js";
 
-/**
- * Escape keyword để tránh lỗi regex match lung tung
- */
+/* ===========================================
+   REMOVE VIETNAMESE TONES
+=========================================== */
+
+/* ===========================================
+   ESCAPE REGEX
+=========================================== */
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/**
- * GET /api/products
- * Phân trang + tìm kiếm + lọc + sắp xếp
- */
+/* ===========================================
+   GET /api/products
+=========================================== */
 export const getAllProducts = async (req, res) => {
   try {
     const {
@@ -33,9 +37,6 @@ export const getAllProducts = async (req, res) => {
     const pageNum = Math.max(1, Number(page));
     const lim = Math.min(100, Math.max(1, Number(limit)));
 
-    // ==========================
-    // BUILD FILTER
-    // ==========================
     const filters = {};
 
     if (vehicle) filters.vehicle = vehicle;
@@ -44,13 +45,23 @@ export const getAllProducts = async (req, res) => {
     if (status) filters.status = status;
     if (year) filters.year = year;
 
-    // ===== FIX TÌM KIẾM KHÔNG PHÂN BIỆT HOA/THƯỜNG + KHÔNG MATCH SAI =====
+    // SEARCH không dấu
     if (q && q.trim()) {
-      const safeKeyword = escapeRegex(q.trim());
-      filters.name = { $regex: safeKeyword, $options: "i" };
-    }
+      const keyword = q.trim().toLowerCase();
+      const safeKeyword = escapeRegex(keyword);
 
-    // Giá
+      const noToneKeyword = escapeRegex(
+        removeVietnameseTone(keyword).replace(/\s+/g, " ").trim()
+      );
+
+      filters.$or = [
+        { name: { $regex: new RegExp(safeKeyword, "i") } },
+        { nameNoTone: { $regex: new RegExp(noToneKeyword, "i") } },
+      ];
+    }
+    console.log("FILTERS = ", JSON.stringify(filters, null, 2));
+
+    // Price range
     if (price_min || price_max) {
       filters.price = {};
       if (price_min) filters.price.$gte = Number(price_min);
@@ -59,49 +70,35 @@ export const getAllProducts = async (req, res) => {
 
     const sortObj = { [sort]: order === "asc" ? 1 : -1 };
 
-    // Đếm tổng
+    // COUNT (KHÔNG collation)
     const totalItems = await Product.countDocuments(filters);
 
-    // Chọn trường trả về
+    // LIST (KHÔNG collation)
     const projection =
-      "name price vehicle model category quantity image status createdAt";
+      "name nameNoTone price vehicle model category quantity image status createdAt";
 
     const products = await Product.find(filters)
+      .collation({ locale: "vi", strength: 1 })
       .select(projection)
       .sort(sortObj)
       .skip((pageNum - 1) * lim)
       .limit(lim)
       .lean();
 
-    // Sửa status theo quantity
     const data = products.map((p) =>
-      typeof p.quantity === "number" && p.quantity <= 0
-        ? { ...p, status: "Hết hàng" }
-        : p
+      p.quantity <= 0 ? { ...p, status: "Hết hàng" } : p
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       page: pageNum,
       limit: lim,
       totalPages: Math.ceil(totalItems / lim),
       totalItems,
-      sort,
-      order,
-      filters: {
-        vehicle,
-        category,
-        model,
-        status,
-        q,
-        price_min,
-        price_max,
-        year,
-      },
       data,
     });
   } catch (error) {
-    console.error("getAllProducts:", error);
-    res.status(500).json({
+    console.error("getAllProducts error:", error);
+    return res.status(500).json({
       error: "Lỗi khi lấy danh sách sản phẩm",
       details: error.message,
     });
@@ -144,6 +141,7 @@ export const createProduct = async (req, res) => {
     if (!name || !vehicle || !model || !category || price == null) {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
     }
+    req.body.nameNoTone = removeVietnameseTone(req.body.name);
 
     const product = new Product(req.body);
     await product.save();
@@ -168,6 +166,10 @@ export const updateProduct = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ error: "ID không hợp lệ" });
+    // THÊM ĐOẠN NÀY
+    if (req.body.name) {
+      req.body.nameNoTone = removeVietnameseTone(req.body.name);
+    }
 
     const product = await Product.findByIdAndUpdate(id, req.body, {
       new: true,
