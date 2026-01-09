@@ -1,24 +1,19 @@
 import mongoose from "mongoose";
 
-const OrderSchema = new mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
-    items: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        name: String,           // tên sản phẩm tại thời điểm bán
-        quantity: Number,       // số lượng mua
-        price: Number           // giá tại thời điểm mua
-      }
-    ],
-    totalPrice: {
-      type: Number,
-      required: true           // tổng tiền đơn hàng
+    invoiceCode: String, // Mã hóa đơn HD00001
+    customerInfo: {
+      name: String,
+      phone: String,
+      address: String,
     },
-    customerName: String,
-    customerPhone: String,
-    note: String
+    items: Array,
+    totalAmount: Number,
+    createdAt: Date,
   },
-  { timestamps: true }         // createdAt để tính doanh thu theo tháng
+  { timestamps: true }
 );
 
-export default mongoose.model("Order", OrderSchema);
+
+export default mongoose.model("Order", orderSchema);

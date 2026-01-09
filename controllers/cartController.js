@@ -1,5 +1,6 @@
 import Cart from "../models/cart.js";
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
 
 // 🛒 Lấy giỏ hàng hiện tại
 export const getCart = async (req, res) => {
@@ -99,31 +100,35 @@ export const removeFromCart = async (req, res) => {
 
     res.status(200).json({ message: "Đã xóa sản phẩm khỏi giỏ hàng", cart });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: "Lỗi khi xóa sản phẩm khỏi giỏ hàng",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "Lỗi khi xóa sản phẩm khỏi giỏ hàng",
+      details: error.message,
+    });
   }
 };
 
 // 🧾 Thanh toán giỏ hàng
 export const checkout = async (req, res) => {
   try {
-    const { customerInfo } = req.body; // { name, phone, address }
+    const { customerInfo } = req.body;
 
     const cart = await Cart.findOne();
     if (!cart || cart.items.length === 0)
       return res.status(400).json({ error: "Giỏ hàng đang trống" });
 
+    // 📌 Tạo mã hóa đơn tự tăng
+    const invoiceCode = await generateInvoiceCode();
+
     const order = {
-      id: "ORD-" + Date.now(),
+      invoiceCode,
       customerInfo,
       items: cart.items,
       totalAmount: cart.totalAmount,
       createdAt: new Date(),
     };
+
+    // 📌 Lưu vào lịch sử mua hàng (Order collection)
+    await Order.create(order);
 
     // ✅ Trừ tồn kho
     for (const item of cart.items) {
@@ -136,10 +141,26 @@ export const checkout = async (req, res) => {
     cart.items = [];
     await cart.save();
 
-    res.status(200).json({ message: "Thanh toán thành công", order });
+    res.status(200).json({
+      message: "Thanh toán thành công",
+      order,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Lỗi khi thanh toán giỏ hàng", details: error.message });
+    res.status(500).json({
+      error: "Lỗi khi thanh toán giỏ hàng",
+      details: error.message,
+    });
   }
 };
+
+// 📌 Hàm tạo mã hóa đơn tự tăng
+async function generateInvoiceCode() {
+  const last = await Order.findOne().sort({ createdAt: -1 });
+
+  if (!last) return "NĐNH00001";
+
+  const lastNumber = parseInt(last.invoiceCode.replace("NĐNH", ""));
+  const newNumber = (lastNumber + 1).toString().padStart(5, "0");
+
+  return "NĐNH" + newNumber;
+}
