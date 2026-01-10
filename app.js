@@ -18,6 +18,8 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import modelRoutes from "./routes/modelRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import dashboardStatsRoutes from "./routes/dashboardStatsRoutes.js";
+import orderRoutes from "./routes/orderRoute.js";
+
 
 dotenv.config();
 
@@ -87,6 +89,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/models", modelRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/stats", dashboardStatsRoutes);
+app.use("/api/orders", orderRoutes);
+
 
 // Healthchecks
 app.get("/api/ping", (_req, res) => res.json({ ok: true, message: "pong" }));

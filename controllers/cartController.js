@@ -119,16 +119,23 @@ export const checkout = async (req, res) => {
     // 📌 Tạo mã hóa đơn tự tăng
     const invoiceCode = await generateInvoiceCode();
 
-    const order = {
+    // 📌 Tạo mới hóa đơn theo đúng Schema
+    const newOrder = await Order.create({
       invoiceCode,
+      customerName: customerInfo.name,
+      phone: customerInfo.phone,
       customerInfo,
       items: cart.items,
       totalAmount: cart.totalAmount,
-      createdAt: new Date(),
-    };
 
-    // 📌 Lưu vào lịch sử mua hàng (Order collection)
-    await Order.create(order);
+      paymentInfo: {
+        method: "Tiền mặt",
+        status: "paid",
+        paidAt: new Date(),
+      },
+
+      orderStatus: "success",
+    });
 
     // ✅ Trừ tồn kho
     for (const item of cart.items) {
@@ -137,13 +144,14 @@ export const checkout = async (req, res) => {
       });
     }
 
-    // 🧹 Xóa giỏ sau khi thanh toán
+    // 🧹 Xóa giỏ hàng
     cart.items = [];
+    cart.totalAmount = 0;
     await cart.save();
 
     res.status(200).json({
       message: "Thanh toán thành công",
-      order,
+      order: newOrder,
     });
   } catch (error) {
     res.status(500).json({
@@ -153,10 +161,10 @@ export const checkout = async (req, res) => {
   }
 };
 
+
 // 📌 Hàm tạo mã hóa đơn tự tăng
 async function generateInvoiceCode() {
   const last = await Order.findOne().sort({ createdAt: -1 });
-
   if (!last) return "NĐNH00001";
 
   const lastNumber = parseInt(last.invoiceCode.replace("NĐNH", ""));
@@ -164,3 +172,4 @@ async function generateInvoiceCode() {
 
   return "NĐNH" + newNumber;
 }
+
