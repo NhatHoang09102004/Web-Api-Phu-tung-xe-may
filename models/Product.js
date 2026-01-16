@@ -13,7 +13,7 @@ const productSchema = new mongoose.Schema(
     specifications: { type: String, default: "" },
     quantity: { type: Number, default: 0 },
     origin: { type: String, default: "" },
-    image: { type: String, default: "" },
+    image: window.uploadedImageUrl ?? "",
     status: {
       type: String,
       enum: ["Còn hàng", "Hết hàng"],
